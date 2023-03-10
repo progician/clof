@@ -35,7 +35,23 @@ def tu_from_source(source: Path, compilation_args):
     return translation_unit
 
 
-def list_of_functions(root, prefix="") -> List[str]:
+def fully_qualified(c):
+    try:
+        if c is None:
+            return ''
+        elif c.kind == CursorKind.TRANSLATION_UNIT:
+            return ''
+        else:
+            par = c.semantic_parent
+            res = fully_qualified(c.semantic_parent)
+            if res != '':
+                return res + '::' + c.spelling
+        return c.spelling
+    except ValueError:
+        return ''
+
+
+def list_of_functions(root, indent=0) -> List[str]:
     function_names = []
     all_fn_types = [
         CursorKind.FUNCTION_DECL,
@@ -44,12 +60,17 @@ def list_of_functions(root, prefix="") -> List[str]:
         CursorKind.FUNCTION_TEMPLATE
     ]
 
+    all_qual_kinds = [
+        CursorKind.CLASS_DECL,
+        CursorKind.NAMESPACE,
+    ]
+
     for node in root.get_children():
         logging.debug(f'{"  "*indent} {node.kind} - {node.displayname}')
         if node.kind in all_fn_types:
-            function_names.append(FunctionEntry(f"{prefix}::{node.displayname}", node))
-        elif node.kind in (CursorKind.CLASS_DECL, CursorKind.NAMESPACE):
-            function_names.extend(list_of_functions(node, node.displayname))
+            function_names.append(FunctionEntry(f"{fully_qualified(node.semantic_parent)}::{node.displayname}", node))
+        elif node.kind in all_qual_kinds:
+            function_names.extend(list_of_functions(node, indent+2))
     return function_names
 
 
