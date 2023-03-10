@@ -5,10 +5,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import logging
-
-logging.getLogger().setLevel(logging.DEBUG)
-
-Config.set_library_path('/Users/gyula.gubacsi/clang+llvm-15.0.7-arm64-apple-darwin22.0/lib')
+import os
 
 
 @dataclass
@@ -119,7 +116,19 @@ def main():
     parser = ArgumentParser()
     parser.add_argument('source', nargs='?', type=Path, help="C/C++ source file to list the functions and the number of lines")
     parser.add_argument('-p', '--compilation-database', type=Path, help="Path to the compilation database, if there is one")
+    parser.add_argument('-l', '--library-path', type=Path, default=os.environ.get('CLANG_LIBRARY_PATH', ''), help="Path to the clang libraries. Default is from the env variable CLANG_LIBRARY_PATH")
+    parser.add_argument('-m', '--max-sources', type=int, help='For debugging, limits the number of files processed')
+    parser.add_argument('-v', '--verbose', action="store_true", help='Verbose logging')
     args = parser.parse_args()
+
+    if args.library_path == '':
+        logging.error('Must specify library-path or CLANG_LIBRARY_PATH env variable!')
+        exit(1)
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.INFO)
+
+    Config.set_library_path(args.library_path)
 
     if args.source:
         functions_from_file(args.compilation_database, args.source)
@@ -127,6 +136,8 @@ def main():
         if not args.compilation_database:
             raise RuntimeError("compilation database not specified")
         source_files = source_files_from_db(args.compilation_database)
+        if args.max_sources:
+            source_files = source_files[:args.max_sources]
         functions = sum([
             functions_from_file(args.compilation_database, source_file)
             for source_file in source_files
