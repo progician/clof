@@ -45,6 +45,7 @@ def list_of_functions(root, prefix="") -> List[str]:
     ]
 
     for node in root.get_children():
+        logging.debug(f'{"  "*indent} {node.kind} - {node.displayname}')
         if node.kind in all_fn_types:
             function_names.append(FunctionEntry(f"{prefix}::{node.displayname}", node))
         elif node.kind in (CursorKind.CLASS_DECL, CursorKind.NAMESPACE):
@@ -118,15 +119,15 @@ def main():
     parser.add_argument('-p', '--compilation-database', type=Path, help="Path to the compilation database, if there is one")
     parser.add_argument('-l', '--library-path', type=Path, default=os.environ.get('CLANG_LIBRARY_PATH', ''), help="Path to the clang libraries. Default is from the env variable CLANG_LIBRARY_PATH")
     parser.add_argument('-m', '--max-sources', type=int, help='For debugging, limits the number of files processed')
-    parser.add_argument('-v', '--verbose', action="store_true", help='Verbose logging')
+    parser.add_argument('-ll', '--log', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Log verbosity')
     args = parser.parse_args()
 
     if args.library_path == '':
         logging.error('Must specify library-path or CLANG_LIBRARY_PATH env variable!')
         exit(1)
 
-    if args.verbose:
-        logging.getLogger().setLevel(logging.INFO)
+    if args.log:
+        logging.basicConfig(level=getattr(logging, args.log))
 
     Config.set_library_path(args.library_path)
 
