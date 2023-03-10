@@ -132,7 +132,7 @@ def main():
     Config.set_library_path(args.library_path)
 
     if args.source:
-        functions_from_file(args.compilation_database, args.source)
+        functions = functions_from_file(args.compilation_database, args.source)
     else:
         if not args.compilation_database:
             raise RuntimeError("compilation database not specified")
